@@ -7504,52 +7504,18 @@ function getDecade(s) {
   return Math.floor(parseInt(s.substring(0,4))/10)*10 + "s";
 }
 
-const grouped = {};
-stories.forEach(s => {
-  const d = getDecade(s.sort);
-  if (!grouped[d]) grouped[d] = [];
-  grouped[d].push(s);
-});
-
-const el = document.getElementById('story-list');
-// Rebuild the pre-rendered rows with their interactive handlers.
-el.replaceChildren();
-
-Object.keys(grouped).forEach(dec => {
-  const sec = document.createElement('div');
-  sec.className = 'decade-section';
-  const h = document.createElement('h2');
-  h.className = 'decade-header';
-  h.textContent = "The " + dec;
-  sec.appendChild(h);
-  const tbl = document.createElement('table');
-  tbl.className = 'story-table';
-  grouped[dec].forEach(s => {
-    const tr = document.createElement('tr');
-    const td1 = document.createElement('td');
-    td1.className = 'col-title';
-    const hasEntry = !!glossaryEntries[s.title];
-    const titleClass = hasEntry ? 'title-text has-entry' : 'title-text';
-    let html = '<span class="' + titleClass + '">\u201C' + s.title + '\u201D</span>';
-    if (s.pubOnly) html += '<span class="pub-only">pub. date only</span>';
-    if (s.notes) html += '<span class="notes">' + s.notes + '</span>';
-    td1.innerHTML = html;
-    if (hasEntry) {
-      const span = td1.querySelector('.title-text');
-      span.addEventListener('click', (e) => openModal(s, e));
-    }
-    tr.appendChild(td1);
-    const td2 = document.createElement('td');
-    td2.className = 'col-date';
-    let dhtml = fmtDate(s.date);
-    if (s.rv) dhtml += '<span class="revision">' + fmtRv(s.rv) + '</span>';
-    td2.innerHTML = dhtml;
-    tr.appendChild(td2);
-    tbl.appendChild(tr);
+// Keep the published HTML in place; only connect the existing pop-up controls.
+function connectEntries(container, entries) {
+  const byTitle = new Map(entries.map(entry => [entry.title, entry]));
+  container.addEventListener('click', event => {
+    const title = event.target.closest('.title-text.has-entry');
+    if (!title || !container.contains(title)) return;
+    const name = title.textContent.replace(/^\u201c|\u201d$/g, '');
+    const entry = byTitle.get(name);
+    if (entry) openModal(entry, event);
   });
-  sec.appendChild(tbl);
-  el.appendChild(sec);
-});
+}
+connectEntries(document.getElementById('story-list'), stories);
 
 // ===== Novels =====
 const novels = [
@@ -7814,74 +7780,7 @@ const novels = [
 
 novels.sort((a, b) => a.sort.localeCompare(b.sort));
 
-const novelGrouped = {};
-novels.forEach(n => {
-  const d = getDecade(n.sort);
-  if (!novelGrouped[d]) novelGrouped[d] = [];
-  novelGrouped[d].push(n);
-});
-
-const novelEl = document.getElementById('novel-list');
-novelEl.replaceChildren();
-
-Object.keys(novelGrouped).forEach(dec => {
-  const sec = document.createElement('div');
-  sec.className = 'decade-section';
-  const h = document.createElement('h2');
-  h.className = 'decade-header';
-  h.textContent = "The " + dec;
-  sec.appendChild(h);
-  const tbl = document.createElement('table');
-  tbl.className = 'novel-table';
-  novelGrouped[dec].forEach((n, idx) => {
-    const isStripe = idx % 2 === 1;
-    // Title row
-    const tr = document.createElement('tr');
-    if (isStripe) tr.className = 'stripe';
-    const td1 = document.createElement('td');
-    td1.className = 'col-title';
-    const hasEntry = !!glossaryEntries[n.title];
-    if (hasEntry) {
-      const span = document.createElement('span');
-      span.className = 'title-text has-entry';
-      const em = document.createElement('em');
-      em.className = 'novel-title';
-      em.textContent = n.title;
-      span.appendChild(em);
-      span.addEventListener('click', (e) => openModal(n, e));
-      td1.appendChild(span);
-    } else {
-      const em = document.createElement('em');
-      em.className = 'novel-title';
-      em.textContent = n.title;
-      td1.appendChild(em);
-    }
-    tr.appendChild(td1);
-    const td2 = document.createElement('td');
-    td2.className = 'col-date';
-    let dhtml = fmtDate(n.date);
-    if (n.rv) dhtml += '<span class="revision">' + fmtRv(n.rv) + '</span>';
-    td2.innerHTML = dhtml;
-    tr.appendChild(td2);
-    tbl.appendChild(tr);
-    // Description row
-    if (n.card || n.notes) {
-      const tr2 = document.createElement('tr');
-      if (isStripe) tr2.className = 'stripe';
-      const td3 = document.createElement('td');
-      td3.className = 'entry-desc';
-      td3.colSpan = 2;
-      let desc = '';
-      if (n.card) desc += '<span class="card-info">' + n.card + '</span>';
-      if (n.notes) desc += '<span class="notes-italic">' + n.notes + '</span>';
-      td3.innerHTML = desc;
-      tr2.appendChild(td3);
-      tbl.appendChild(tr2);
-    }
-  });
-  sec.appendChild(tbl);
-  novelEl.appendChild(sec);
-});
+connectEntries(document.getElementById('novel-list'), novels);
 
 // ===== Modal logic =====
 const overlay = document.getElementById('modal-overlay');
@@ -8051,3 +7950,4 @@ document.addEventListener('keydown', (e) => {
 </script>
 </body>
 </html>
+
